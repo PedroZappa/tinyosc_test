@@ -2,7 +2,7 @@
 /// @brief OSC Interface main file
 /// @Author: Zedro
 
-#include "../inc/tinyosc.h"
+#include "../inc/tinyosc.hpp"
 #include <asm-generic/socket.h>
 #include <csignal>
 #include <cstdlib>
@@ -25,17 +25,15 @@ int main(void) {
 	// Buffer to read packet data
 	char buf[BUF_SIZE];
 
-	// Dummy Test
-	char bin[4] = {0x01, 0x11, 0x33, 0x66};
-	int len = tosc_writeMessage(
-		buf, BUF_SIZE, "/test", "fsibTFNI", 1.0f, "yo whirl!", -42, sizeof(bin), bin);
+	// Create Test Message
+	int len = tosc_writeMessage(buf, BUF_SIZE, "/test", "si", "yo whirl!", -42);
 	tosc_printOscBuffer(buf, len);
 
 	// SIGINT handler
 	signal(SIGINT, &SIGINT_handler);
 
-	// UDP Server Setup
 	try {
+		// UDP Server Setup
 		const int fd = socket(AF_INET, SOCK_DGRAM, 0); // Create socket
 		if (fd == -1)
 			throw std::runtime_error("Failed to create socket");
@@ -51,7 +49,7 @@ int main(void) {
 			close(fd);
 			throw std::runtime_error("Failed to set socket to reuse");
 		}
-		struct sockaddr_in socket_in; // Crea Socket address & set values
+		struct sockaddr_in socket_in; // Create Socket address & set values
 		socket_in.sin_family = AF_INET;
 		socket_in.sin_port = htons(PORT); // Bind socket to port
 		socket_in.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -72,14 +70,16 @@ int main(void) {
 			if (select((fd + 1), &readFds, NULL, NULL, &timeout) > 0) {
 				// Process Bundles
 				tosc_bundle bundle;
+				tosc_message osc;
+
 				tosc_parseBundle(&bundle, buf, BUF_SIZE);
 				const uint64_t timetag = tosc_getTimetag(&bundle);
-				tosc_message osc;
 				while (tosc_getNextMessage(&bundle, &osc))
 					tosc_printMessage(&osc);
 			} else {
 				// Process Messages
 				tosc_message osc;
+
 				tosc_parseMessage(&osc, buf, BUF_SIZE);
 				tosc_printMessage(&osc);
 			}
