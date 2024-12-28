@@ -35,12 +35,19 @@
 *.i*86
 *.x86_64
 *.hex
+osc_interface
 
 # Debug files
 *.dSYM/
 *.su
 *.idb
 *.pdb
+compile_commands.json
+
+# temporary files
+.temp/
+.build/
+.cache/
 
 # Kernel Module Compile Results
 *.mod*
