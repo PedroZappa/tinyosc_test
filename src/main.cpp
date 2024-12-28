@@ -67,7 +67,22 @@ int main(void) {
 			struct timeval timeout{1, 0};
 
 			// Wait for data
-			if (select((fd + 1), &readFds, NULL, NULL, &timeout) > 0) {
+			// if (select((fd + 1), &readFds, NULL, NULL, &timeout) > 0) {
+			int select_result = select((fd + 1), &readFds, NULL, NULL, &timeout);
+			if (select_result > 0) {
+				struct sockaddr_in sender_addr;
+				socklen_t sender_addr_len = sizeof(sender_addr);
+				ssize_t recv_len = recvfrom(fd,
+											buf,
+											BUF_SIZE,
+											0,
+											(struct sockaddr *)&sender_addr,
+											&sender_addr_len);
+
+				if (recv_len < 0) {
+					std::cerr << "Error receiving data!" << std::endl;
+					continue; // Skip if there's an error
+				}
 				// Process Bundles
 				tosc_bundle bundle;
 				tosc_message osc;
@@ -76,12 +91,12 @@ int main(void) {
 				const uint64_t timetag = tosc_getTimetag(&bundle);
 				while (tosc_getNextMessage(&bundle, &osc))
 					tosc_printMessage(&osc);
+			} else if (select_result == 0) {
+				// No data available in the timeout period
+				continue;
 			} else {
-				// Process Messages
-				tosc_message osc;
-
-				tosc_parseMessage(&osc, buf, BUF_SIZE);
-				tosc_printMessage(&osc);
+				std::cerr << "Error waiting for data!" << std::endl;
+				break; // Skip if there's an error
 			}
 		}
 		close(fd);
@@ -89,6 +104,7 @@ int main(void) {
 		std::cerr << e.what() << std::endl;
 		return (EXIT_FAILURE);
 	}
+
 	return (EXIT_SUCCESS);
 }
 
