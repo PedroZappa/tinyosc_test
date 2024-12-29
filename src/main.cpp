@@ -2,6 +2,7 @@
 /// @brief OSC Interface main file
 /// @Author: Zedro
 
+#include "../inc/ansi.h"
 #include "../inc/tinyosc.hpp"
 #include <asm-generic/socket.h>
 #include <csignal>
@@ -13,7 +14,9 @@
 #include <sys/select.h>
 #include <sys/socket.h>
 
+#define VERSION "1.0.0"
 #define BUF_SIZE 2048
+#define MAX_PORTS 65535
 #define PORT 9000
 
 // Volatile allows for external modification
@@ -21,13 +24,43 @@ static volatile bool running = true;
 
 static void SIGINT_handler(int sig);
 
-int main(void) {
-	// Buffer to read packet data
-	char buf[BUF_SIZE];
+int main(int argc, char **argv) {
+	char buf[BUF_SIZE]; // Buffer to read packet data
+	int port = PORT;
+
+	std::cout << BGRN "osc_interface " NC << VERSION << std::endl;
+	// Process Port parameter
+	try {
+		if (argc > 1) { // Process Port
+			std::cout << "Setting port to: " BYEL << argv[1] << NC << std::endl;
+			long porlLong = strtol(argv[1], nullptr, 10);
+			char *endptr = nullptr;
+			// Check if port is a valid int
+			if ((*endptr != '\0') || (argv[1] == endptr)) // if empty
+				throw std::runtime_error("Invalid port: not an int");
+			// Check if port is within valid range
+			if ((porlLong < 0) || (porlLong > MAX_PORTS))
+				throw std::runtime_error("Invalid port: out of range");
+			// Warn about reserved ranges
+			if (porlLong < 1024)
+				std::cerr << "Error: Port " << porlLong
+						  << " is within a reserved range (0-1023)" << std::endl;
+			port = static_cast<int>(porlLong);
+		} else if (argc > 2) {
+			throw std::runtime_error("Too many arguments");
+		} else // Use default port
+			std::cout << "Using default port: " << port << std::endl;
+
+		std::cout << BGRN "listening on Port: " << port
+				  << std::endl;
+	} catch (std::exception &e) { // Handle Error
+		std::cerr << e.what() << std::endl;
+		return (EXIT_FAILURE);
+	}
 
 	// Create Test Message
-	int len = tosc_writeMessage(buf, BUF_SIZE, "/test", "si", "yo whirl!", -42);
-	tosc_printOscBuffer(buf, len);
+	// int len = tosc_writeMessage(buf, BUF_SIZE, "/test", "si", "yo whirl!",
+	// -42); tosc_printOscBuffer(buf, len);
 
 	// SIGINT handler
 	signal(SIGINT, &SIGINT_handler);
@@ -49,9 +82,10 @@ int main(void) {
 			close(fd);
 			throw std::runtime_error("Failed to set socket to reuse");
 		}
-		struct sockaddr_in socket_in; // Create Socket address & set values
+		// Create Socket address & set values
+		struct sockaddr_in socket_in;
 		socket_in.sin_family = AF_INET;
-		socket_in.sin_port = htons(PORT); // Bind socket to port
+		socket_in.sin_port = htons(port); // Bind socket to port
 		socket_in.sin_addr.s_addr = htonl(INADDR_ANY);
 		// Bind socket
 		if (bind(fd, (struct sockaddr *)(&socket_in), sizeof(socket_in)) == -1) {
@@ -78,7 +112,6 @@ int main(void) {
 											0,
 											(struct sockaddr *)&sender_addr,
 											&sender_addr_len);
-
 				if (recv_len < 0) {
 					std::cerr << "Error receiving data!" << std::endl;
 					continue; // Skip if there's an error
