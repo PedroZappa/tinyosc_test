@@ -119,7 +119,6 @@ int main(int argc, char **argv) {
 				// Process Bundles
 				tosc_bundle bundle;
 				tosc_message osc;
-
 				tosc_parseBundle(&bundle, buf, BUF_SIZE);
 				const uint64_t timetag = tosc_getTimetag(&bundle);
 				while (tosc_getNextMessage(&bundle, &osc))
