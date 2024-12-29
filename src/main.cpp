@@ -33,26 +33,26 @@ int main(int argc, char **argv) {
 	try {
 		if (argc > 1) { // Process Port
 			std::cout << "Setting port to: " BYEL << argv[1] << NC << std::endl;
-			long porlLong = strtol(argv[1], nullptr, 10);
+
+			long portLong = strtol(argv[1], nullptr, 10);
 			char *endptr = nullptr;
 			// Check if port is a valid int
-			if ((*endptr != '\0') || (argv[1] == endptr)) // if empty
+			if (argv[1] == endptr) // if empty
 				throw std::runtime_error("Invalid port: not an int");
 			// Check if port is within valid range
-			if ((porlLong < 0) || (porlLong > MAX_PORTS))
+			if ((portLong < 0) || (portLong > MAX_PORTS))
 				throw std::runtime_error("Invalid port: out of range");
 			// Warn about reserved ranges
-			if (porlLong < 1024)
-				std::cerr << "Error: Port " << porlLong
+			if (portLong < 1024)
+				std::cerr << "Error: Port " << portLong
 						  << " is within a reserved range (0-1023)" << std::endl;
-			port = static_cast<int>(porlLong);
+			port = static_cast<int>(portLong);
 		} else if (argc > 2) {
 			throw std::runtime_error("Too many arguments");
 		} else // Use default port
 			std::cout << "Using default port: " << port << std::endl;
 
-		std::cout << BGRN "listening on Port: " << port
-				  << std::endl;
+		std::cout << "listening on Port: " BGRN << port << NC << std::endl;
 	} catch (std::exception &e) { // Handle Error
 		std::cerr << e.what() << std::endl;
 		return (EXIT_FAILURE);

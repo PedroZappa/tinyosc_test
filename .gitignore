@@ -43,6 +43,7 @@ osc_interface
 *.idb
 *.pdb
 compile_commands.json
+gdb.txt
 
 # temporary files
 .temp/
